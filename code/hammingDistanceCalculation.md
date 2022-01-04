@@ -113,6 +113,7 @@ i7_tmp <-
   i7 %>% sample_frac(size = 1, replace = FALSE) %>% 
   filter(str_detect(rowname, "UDI")) %>%
   filter(str_detect(barcode, "v2")) %>%
+  write_csv("../indexDistances/i7_distances.csv") %>%
   select(-seqlev) %>%
   filter(hamming > 2) %>%
   pivot_wider(names_from = barcode, values_from = hamming) %>%
@@ -248,6 +249,7 @@ i5_tmp <-
   i5 %>% #sample_frac(size = 1, replace = FALSE) %>% 
   filter(str_detect(rowname, "UDI")) %>%
   filter(str_detect(barcode, "v2")) %>%
+  write_csv("../indexDistances/i5_distances.csv") %>%
   select(-seqlev) %>%
   filter(hamming > 2) %>%
   pivot_wider(names_from = barcode, values_from = hamming) %>%
