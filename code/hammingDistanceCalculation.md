@@ -9,14 +9,14 @@ library(tidyverse)
 
     ## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──
 
-    ## ✓ ggplot2 3.3.5     ✓ purrr   0.3.4
-    ## ✓ tibble  3.1.6     ✓ dplyr   1.0.7
-    ## ✓ tidyr   1.1.4     ✓ stringr 1.4.0
-    ## ✓ readr   2.1.1     ✓ forcats 0.5.1
+    ## ✔ ggplot2 3.3.6     ✔ purrr   0.3.4
+    ## ✔ tibble  3.1.7     ✔ dplyr   1.0.9
+    ## ✔ tidyr   1.2.0     ✔ stringr 1.4.0
+    ## ✔ readr   2.1.2     ✔ forcats 0.5.1
 
     ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-    ## x dplyr::filter() masks stats::filter()
-    ## x dplyr::lag()    masks stats::lag()
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
 
 ``` r
 library(bioseq)
@@ -44,37 +44,45 @@ library(viridis)
 Hamming Distance of I7 Nextera indexes to I7 NextFlex 289:384 indexes
 
 ``` r
-Nextera_I7_Primers <- read_csv("../barcodes/Nextera_I7_Primers.csv")
+Nextera_I7_Primers <- read_csv("../barcodes/Nextera_i7_Adapters.csv") %>%
+  rename(Index_ID = 1, I7_Index = 2)
 ```
 
     ## Rows: 96 Columns: 4
-
     ## ── Column specification ────────────────────────────────────────────────────────
     ## Delimiter: ","
-    ## chr (4): Index_ID, I7_Index, I7_Primer_Sequence, FullPrimer
-
+    ## chr (4): Nextera_i7, i7_Index, i7_Adapter_Sequence, i7_Primer
     ## 
     ## ℹ Use `spec()` to retrieve the full column specification for this data.
     ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 ``` r
-Nextera_I5_Primers <- read_csv("../barcodes/Nextera_I5_Primers.csv")
+Nextera_I5_Primers <- read_csv("../barcodes/Nextera_i5_Adapters.csv") %>%
+  rename(Index_ID = 1, I5_Index = 2)
 ```
 
     ## Rows: 92 Columns: 4
-
     ## ── Column specification ────────────────────────────────────────────────────────
     ## Delimiter: ","
-    ## chr (4): Index_ID, I5_Primer_Sequence, I5_Reverse_Complement, FullPrimer
-
+    ## chr (4): Nextera_i5, i5_Index, i5_Adapter_Sequence, i5_Primer
     ## 
     ## ℹ Use `spec()` to retrieve the full column specification for this data.
     ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 ``` r
-NextFlex <- readxl::read_excel("../data/NEXTflex_UDI_Index_Sequences_v21.06_v1-New.xlsx") %>% 
-  rename(Index_ID = 1, I7_Index = 2, I5_Primer_Sequence = 3, I5_Reverse_Complement = 4)
+NextFlex <- read_csv("../barcodes/NEXTFLEX_Adapters.csv") %>%
+  rename(Index_ID = 1, I7_Index = 2, I5_Index = 3)
+```
 
+    ## Rows: 384 Columns: 4
+    ## ── Column specification ────────────────────────────────────────────────────────
+    ## Delimiter: ","
+    ## chr (4): NEXTFLEX_ID, i7_Index, i5_Index, i5_Adapter_Sequence
+    ## 
+    ## ℹ Use `spec()` to retrieve the full column specification for this data.
+    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
 I7_Merged <-
   bind_rows(
   Nextera_I7_Primers %>% select(Index_ID, I7_Index),
@@ -109,11 +117,16 @@ i7 <- full_join(tmp, tmp2)
     ## Joining, by = c("rowname", "barcode")
 
 ``` r
+i7 %>% sample_frac(size = 1, replace = FALSE) %>% 
+  filter(str_detect(rowname, "UDI")) %>%
+  filter(str_detect(barcode, "v2")) %>%
+  rename(NEXTFLEX_ID = 1, Nextera_i7 = 2) %>%
+  write_csv("../indexDistances/i7_distances.csv")
+
 i7_tmp <-
   i7 %>% sample_frac(size = 1, replace = FALSE) %>% 
   filter(str_detect(rowname, "UDI")) %>%
   filter(str_detect(barcode, "v2")) %>%
-  write_csv("../indexDistances/i7_distances.csv") %>%
   select(-seqlev) %>%
   filter(hamming > 2) %>%
   pivot_wider(names_from = barcode, values_from = hamming) %>%
@@ -213,11 +226,11 @@ indexes
 ``` r
 I5_Merged <-
   bind_rows(
-  Nextera_I5_Primers %>% select(Index_ID, I5_Primer_Sequence),
-  NextFlex %>% slice(289:384) %>% select(Index_ID, I5_Primer_Sequence)
+  Nextera_I5_Primers %>% select(Index_ID, I5_Index),
+  NextFlex %>% slice(289:384) %>% select(Index_ID, I5_Index)
 )
 
-tmp <- barcode.set.distances(pull(I5_Merged, I5_Primer_Sequence), metric = c("hamming"))
+tmp <- barcode.set.distances(pull(I5_Merged, I5_Index), metric = c("hamming"))
 rownames(tmp) <- I5_Merged$Index_ID
 colnames(tmp) <- I5_Merged$Index_ID
 x1 <- tmp@x
@@ -228,7 +241,7 @@ tmp <- as.data.frame(tmp)
 tmp <- tmp %>% rownames_to_column(., var = "rowname") %>% as_tibble()
 tmp2 <- tmp %>% pivot_longer(cols = -1, names_to = "barcode", values_to = "hamming")
 
-tmp <- barcode.set.distances(pull(I5_Merged, I5_Primer_Sequence), metric = c("seqlev"))
+tmp <- barcode.set.distances(pull(I5_Merged, I5_Index), metric = c("seqlev"))
 rownames(tmp) <- I5_Merged$Index_ID
 colnames(tmp) <- I5_Merged$Index_ID
 x1 <- tmp@x
@@ -245,11 +258,16 @@ i5 <- full_join(tmp, tmp2)
     ## Joining, by = c("rowname", "barcode")
 
 ``` r
-i5_tmp <-
-  i5 %>% #sample_frac(size = 1, replace = FALSE) %>% 
+i5 %>%
   filter(str_detect(rowname, "UDI")) %>%
   filter(str_detect(barcode, "v2")) %>%
-  write_csv("../indexDistances/i5_distances.csv") %>%
+  rename(NEXTFLEX_ID = 1, Nextera_i5 = 2) %>%
+  write_csv("../indexDistances/i5_distances.csv")
+
+i5_tmp <-
+  i5 %>%
+  filter(str_detect(rowname, "UDI")) %>%
+  filter(str_detect(barcode, "v2")) %>%
   select(-seqlev) %>%
   filter(hamming > 2) %>%
   pivot_wider(names_from = barcode, values_from = hamming) %>%

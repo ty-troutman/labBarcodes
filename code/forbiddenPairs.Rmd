@@ -1,0 +1,69 @@
+---
+title: "Barcode collisions "
+output: github_document
+---
+
+```{r, include=FALSE}
+library(tidyverse)
+```
+
+This document lists barcode collisions between Nextera primers and  NEXTFLEX Unique Dual Index Barcodes (Set D, adapters 289-384). Barcode pairs listed below should not be included on the same sequencing lane.
+
+# i7 barcode collisions
+Barcode collisions are ordered by the NEXTFLEX id at left, or the Nextera id at right.
+```{r, comment=FALSE, warning=FALSE, echo=FALSE, error=FALSE, message=FALSE}
+i7 <- read_csv("../indexDistances/i7_distances.csv", show_col_types = F) %>% 
+  filter(hamming < 3) %>% select(-seqlev) %>%
+  separate(col = Nextera_i7, into = c("tmp1", "tmp2"), sep = "\\.") %>%
+  mutate(tmp2 = str_pad(tmp2, width = 3, side = "left", pad = "0")) %>%
+  unite(col = Nextera_i7, tmp1:tmp2, sep = ".")
+
+bind_cols(i7 %>% arrange(NEXTFLEX_ID),
+          i7 %>% arrange(Nextera_i7)) %>% mutate(empty = "") %>% relocate(empty, .after = 3) %>%
+  knitr::kable(
+    col.names = c(
+      "NEXTFLEX_ID",
+      "Nextera_i7",
+      "Hamming Distance",
+      "",
+      "NEXTFLEX_ID",
+      "Nextera_i7",
+      "Hamming Distance"
+    ),
+    caption = str_c(
+      tally(i7),
+      "i7 barcode pairs fail to meet a minimal Hamming distance of greater than 2.",
+      sep = " "
+    )
+  )
+```
+
+# i5 barcode collisions
+Barcode collisions are ordered by the NEXTFLEX id at left, or the Nextera id at right.
+```{r, comment=FALSE, warning=FALSE, echo=FALSE, error=FALSE, message=FALSE}
+i5 <- read_csv("../indexDistances/i5_distances.csv", show_col_types = F) %>% 
+  filter(hamming < 3) %>% select(-seqlev) %>%
+  separate(col = Nextera_i5, into = c("tmp1", "tmp2"), sep = "\\.") %>%
+  mutate(tmp2 = str_pad(tmp2, width = 3, side = "left", pad = "0")) %>%
+  unite(col = Nextera_i5, tmp1:tmp2, sep = ".")
+
+bind_cols(i5 %>% arrange(NEXTFLEX_ID),
+          i5 %>% arrange(Nextera_i5)) %>% mutate(empty = "") %>% relocate(empty, .after = 3) %>%
+  knitr::kable(
+    col.names = c(
+      "NEXTFLEX_ID",
+      "Nextera_i5",
+      "Hamming Distance",
+      "",
+      "NEXTFLEX_ID",
+      "Nextera_i5",
+      "Hamming Distance"
+    ),
+    caption = str_c(
+      tally(i5),
+      "i5 barcode pairs fail to meet a minimal Hamming distance of greater than 2.",
+      sep = " "
+    )
+  )
+```
+
